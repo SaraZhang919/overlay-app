@@ -1,28 +1,12 @@
 import { useState, useRef, useCallback } from "react";
 
-// ─── CJK Font Loader ─────────────────────────────────────────────────────────
-// Loads Noto Sans SC into the Canvas FontFace registry so Chinese renders correctly
+// ─── CJK Font Support ────────────────────────────────────────────────────────
+// Noto Sans SC is loaded via <link> in index.html at page start.
+// We just wait for document.fonts.ready before any canvas render to ensure
+// all fonts (including CJK) are fully available to the Canvas API.
 
-let _cjkLoaded = false;
-let _cjkPromise = null;
-
-async function ensureCJKFont() {
-  if (_cjkLoaded) return;
-  if (_cjkPromise) return _cjkPromise;
-  _cjkPromise = (async () => {
-    try {
-      const font = new FontFace(
-        "Noto Sans SC",
-        "url(https://fonts.gstatic.com/s/notosanssc/v36/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FnYxNbPzS5HE.woff2)"
-      );
-      await font.load();
-      document.fonts.add(font);
-      _cjkLoaded = true;
-    } catch (e) {
-      console.warn("CJK font load failed, falling back to system font", e);
-    }
-  })();
-  return _cjkPromise;
+async function ensureFontsReady() {
+  await document.fonts.ready;
 }
 
 function hasCJK(text) {
@@ -249,15 +233,23 @@ export default function App() {
   const handleCSV = (e) => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
+    // Read raw bytes to handle both UTF-8 and GBK/GB18030 (common from Chinese Excel exports)
     reader.onload = (ev) => {
-      const lines = ev.target.result.split("\n").map(l => l.trim()).filter(Boolean);
+      const bytes = new Uint8Array(ev.target.result);
+      // Try UTF-8 first; if replacement chars detected, retry with GB18030
+      let text = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+      if (text.includes("\uFFFD")) {
+        try { text = new TextDecoder("gb18030").decode(bytes); } catch (_) {}
+      }
+      text = text.replace(/^\uFEFF/, ""); // strip BOM
+      const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
       if (!lines.length) { setCsvError("CSV is empty."); return; }
       const first = lines[0].toLowerCase();
-      const hasHeader = ["caption","text","quote","标题","文字","内容"].some(k => first.includes(k));
-      const parsed = (hasHeader ? lines.slice(1) : lines).map(l => l.replace(/^["']|["']$/g, "").trim());
+      const hasHeader = ["caption","text","quote","标题","文字","内容","文案"].some(k => first.includes(k));
+      const parsed = (hasHeader ? lines.slice(1) : lines).map(l => l.replace(/^["'\uFEFF]|["']$/g, "").trim());
       setCaptions(parsed); setCsvError("");
     };
-    reader.readAsText(file, "UTF-8");
+    reader.readAsArrayBuffer(file);
   };
 
   const goToConfirm = () => {
@@ -288,9 +280,8 @@ export default function App() {
 
   const renderAll = useCallback(async () => {
     setRendering(true);
-    // Preload CJK font if needed
-    const needsCJK = pairs.some(p => hasCJK(p.caption));
-    if (needsCJK) await ensureCJKFont();
+    // Wait for all fonts (including Noto Sans SC for CJK) to be ready
+    await ensureFontsReady();
 
     const { w, h } = aspect;
     const results = [];
@@ -329,7 +320,6 @@ export default function App() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
           --bg: #0a0a0a; --surface: #141414; --border: #262626;
