@@ -305,11 +305,14 @@ function TemplatePreview({ template }) {
 
 // ─── PreviewCard — inline edit caption + font size on result page ────────────
 
-function PreviewCard({ r, index, template, aspect, onUpdate, onDownload }) {
+function PreviewCard({ r, index, template, aspect, onUpdate, onDownload, onSaveTemplate }) {
   const [editing, setEditing] = useState(false);
   const [draftCaption, setDraftCaption] = useState(r.caption);
   const [draftSize, setDraftSize] = useState(r.sizeScale ?? 1);
   const [rerendering, setRerendering] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [saved, setSaved] = useState(false);
   const liveRef = useRef(r.dataUrl);
 
   const rerender = async (caption, sizeScale) => {
@@ -376,6 +379,32 @@ function PreviewCard({ r, index, template, aspect, onUpdate, onDownload }) {
             <button className="btn btn-ghost btn-sm" onClick={() => { setDraftCaption(r.caption); setDraftSize(r.sizeScale??1); setEditing(false); }}>Cancel</button>
           </div>
         </div>
+      ) : saving ? (
+        <div style={{padding:"10px 12px",background:"var(--card)",borderTop:"1px solid var(--border)"}}>
+          <div className="label" style={{marginBottom:6}}>Name this template</div>
+          <input
+            autoFocus
+            value={saveName}
+            onChange={e => setSaveName(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter" && saveName.trim()) {
+                onSaveTemplate(saveName.trim(), template.id, r.sizeScale ?? 1);
+                setSaving(false); setSaveName(""); setSaved(true);
+                setTimeout(() => setSaved(false), 2000);
+              }
+            }}
+            placeholder="e.g. 小红书 冬日风格"
+            style={{width:"100%",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:6,padding:"8px 10px",fontSize:13,color:"var(--text)",fontFamily:"'DM Sans',sans-serif",outline:"none",marginBottom:8}}
+          />
+          <div style={{display:"flex",gap:8}}>
+            <button className="btn btn-primary btn-sm" style={{flex:1}} disabled={!saveName.trim()} onClick={() => {
+              onSaveTemplate(saveName.trim(), template.id, r.sizeScale ?? 1);
+              setSaving(false); setSaveName(""); setSaved(true);
+              setTimeout(() => setSaved(false), 2000);
+            }}>Save</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => { setSaving(false); setSaveName(""); }}>Cancel</button>
+          </div>
+        </div>
       ) : (
         <div className="preview-card-footer">
           <div style={{minWidth:0}}>
@@ -383,8 +412,10 @@ function PreviewCard({ r, index, template, aspect, onUpdate, onDownload }) {
             <div className="caption-preview">{r.caption}</div>
           </div>
           <div style={{display:"flex",gap:6,flexShrink:0}}>
-            <button className="btn btn-ghost btn-sm" onClick={() => setEditing(true)} style={{padding:"4px 10px",fontSize:11}}>✎</button>
-            <button className="btn btn-ghost btn-sm" onClick={onDownload} style={{padding:"4px 10px",fontSize:11}}>↓</button>
+            {saved && <span style={{fontSize:10,color:"var(--ok)",alignSelf:"center"}}>✓ Saved</span>}
+            <button className="btn btn-ghost btn-sm" title="Save as template" onClick={() => setSaving(true)} style={{padding:"4px 10px",fontSize:11}}>☆</button>
+            <button className="btn btn-ghost btn-sm" title="Edit caption & size" onClick={() => setEditing(true)} style={{padding:"4px 10px",fontSize:11}}>✎</button>
+            <button className="btn btn-ghost btn-sm" title="Download" onClick={onDownload} style={{padding:"4px 10px",fontSize:11}}>↓</button>
           </div>
         </div>
       )}
@@ -406,6 +437,22 @@ export default function App() {
   const [csvError, setCsvError] = useState("");
   const [dragIdx, setDragIdx] = useState(null);
   const [dragOver, setDragOver] = useState(null);
+  const [savedTemplates, setSavedTemplates] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("overlay_saved_templates") || "[]"); } catch { return []; }
+  });
+
+  const saveTemplate = (name, templateId, sizeScale) => {
+    const newT = { id: `saved_${Date.now()}`, name, baseTemplateId: templateId, sizeScale, savedAt: Date.now() };
+    const updated = [...savedTemplates, newT];
+    setSavedTemplates(updated);
+    localStorage.setItem("overlay_saved_templates", JSON.stringify(updated));
+  };
+
+  const deleteSavedTemplate = (id) => {
+    const updated = savedTemplates.filter(t => t.id !== id);
+    setSavedTemplates(updated);
+    localStorage.setItem("overlay_saved_templates", JSON.stringify(updated));
+  };
   const imgInputRef = useRef();
   const csvInputRef = useRef();
 
@@ -572,7 +619,7 @@ export default function App() {
         .panel-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
         .panel-header-title { font-size: 11px; font-family: 'Space Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
         .panel-header-badge { font-size: 10px; background: var(--card); border: 1px solid var(--border); color: var(--muted); padding: 2px 8px; border-radius: 100px; font-family: 'Space Mono', monospace; }
-        .image-row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border); height: 72px; }
+        .image-row { display: flex; align-items: flex-start; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border); min-height: 58px; }
         .image-row:last-child { border-bottom: none; }
         .img-num { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); width: 20px; text-align: right; flex-shrink: 0; }
         .img-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; flex-shrink: 0; border: 1px solid var(--border); }
@@ -581,14 +628,14 @@ export default function App() {
 
         /* Right panel — captions (draggable) */
         .panel-captions { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-        .caption-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); height: 72px; cursor: default; transition: background .12s, border-color .12s; }
+        .caption-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: default; transition: background .12s, border-color .12s; }
         .caption-row:last-child { border-bottom: none; }
         .caption-row.drag-active { background: #1f0a10; border-color: var(--accent); }
         .caption-row.drag-over-target { border-top: 2px solid var(--accent); }
         .caption-row.is-dragging { opacity: .35; }
-        .drag-grip { cursor: grab; color: #444; font-size: 18px; line-height: 1; flex-shrink: 0; padding: 4px; border-radius: 4px; transition: color .1s; user-select: none; }
+        .drag-grip { cursor: grab; color: #444; font-size: 18px; line-height: 1; flex-shrink: 0; padding: 4px 4px 0; border-radius: 4px; transition: color .1s; user-select: none; margin-top: 6px; }
         .drag-grip:hover { color: var(--muted); background: var(--border); }
-        .caption-input { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px; color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; transition: border .15s; min-width: 0; }
+        .caption-input { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px; color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; transition: border .15s; min-width: 0; resize: none; overflow: hidden; line-height: 1.6; min-height: 38px; }
         .caption-input:focus { border-color: var(--accent); }
 
         /* Connector arrows between panels */
@@ -737,12 +784,21 @@ export default function App() {
                       onDragEnd={onDragEnd}
                       title="Drag to reorder"
                     >⠿</span>
-                    <input
+                    <textarea
                       className="caption-input"
                       value={pair.caption}
-                      onChange={e => editCaption(i, e.target.value)}
+                      onChange={e => {
+                        editCaption(i, e.target.value);
+                        e.target.style.height = "auto";
+                        e.target.style.height = e.target.scrollHeight + "px";
+                      }}
                       onMouseDown={e => e.stopPropagation()}
-                      placeholder="Type caption…"
+                      onFocus={e => {
+                        e.target.style.height = "auto";
+                        e.target.style.height = e.target.scrollHeight + "px";
+                      }}
+                      placeholder="Edit caption here… Enter for line break"
+                      rows={1}
                     />
                   </div>
                 ))}
@@ -777,6 +833,28 @@ export default function App() {
                 </div>
               ))}
             </div>
+
+            {savedTemplates.length > 0 && <>
+              <div className="label" style={{marginTop:8}}>Your Saved Templates</div>
+              <div className="template-grid">
+                {savedTemplates.map(st => {
+                  const base = TEMPLATES.find(t => t.id === st.baseTemplateId) || TEMPLATES[0];
+                  const merged = { ...base, id: st.id, name: st.name };
+                  return (
+                    <div key={st.id} style={{position:"relative"}}>
+                      <div className={`template-card${template.id === st.id ? " selected" : ""}`} onClick={() => setTemplate({ ...base, id: st.id, name: st.name })}>
+                        <TemplatePreview template={base} />
+                        <div className="template-card-label">{st.name}</div>
+                        {template.id === st.id && (
+                          <div style={{position:"absolute",top:6,right:6,width:18,height:18,borderRadius:"50%",background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff"}}>✓</div>
+                        )}
+                      </div>
+                      <button onClick={() => deleteSavedTemplate(st.id)} title="Delete template" style={{position:"absolute",top:4,left:4,background:"rgba(0,0,0,0.6)",border:"none",color:"#fff",borderRadius:"50%",width:18,height:18,fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1}}>×</button>
+                    </div>
+                  );
+                })}
+              </div>
+            </>}
 
             <div className="divider"/>
             <div className="label">Output Format</div>
@@ -825,6 +903,7 @@ export default function App() {
                     setRendered(next);
                   }}
                   onDownload={() => downloadOne(r)}
+                  onSaveTemplate={saveTemplate}
                 />
               ))}
             </div>
