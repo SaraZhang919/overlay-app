@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 // ─── CJK Font Support ────────────────────────────────────────────────────────
 // Noto Sans SC is loaded via <link> in index.html at page start.
@@ -178,6 +178,28 @@ const TEMPLATES = [
     },
   },
   {
+    id: "xhs-top", name: "小红书 Top",
+    render: (ctx, img, text, w, h) => {
+      ctx.drawImage(img, 0, 0, w, h);
+      // Subtle white fade at top for legibility on any image
+      const fadeH = h * 0.48;
+      const g = ctx.createLinearGradient(0, 0, 0, fadeH);
+      g.addColorStop(0, "rgba(255,255,255,0.72)");
+      g.addColorStop(0.6, "rgba(255,255,255,0.18)");
+      g.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, fadeH);
+      // Text block: top-centered, generous line height, charcoal
+      const fs = Math.round(w * 0.038);
+      ctx.font = font(400, fs, text);
+      ctx.fillStyle = "#1a1a1a";
+      ctx.textAlign = "center"; ctx.textBaseline = "top";
+      const lh = fs * 1.75;
+      const lines = getWrappedLines(ctx, text, w * 0.78);
+      const startY = h * 0.07;
+      lines.forEach((l, i) => ctx.fillText(l, w / 2, startY + i * lh));
+    },
+  },
+  {
     id: "cinematic", name: "Cinematic",
     render: (ctx, img, text, w, h) => {
       ctx.drawImage(img, 0, 0, w, h);
@@ -205,8 +227,72 @@ const tplBg = (id) => ({
   "neon-outline": "linear-gradient(135deg,#1a001a,#4a0080)",
   "xhs-soft": "linear-gradient(135deg,#fce4ec,#f8bbd0)",
   "stamp": "linear-gradient(135deg,#fef3c7,#fde68a)",
+  "xhs-top": "linear-gradient(180deg,#f5ede8 0%,#e8d5c4 40%,#d4b896 100%)",
   "cinematic": "linear-gradient(135deg,#0f0f0f,#374151)",
 }[id] || "#222");
+
+// ─── Template Preview Component ──────────────────────────────────────────────
+// Renders a small canvas showing the template style on a soft gradient background
+// with sample Chinese text so users can see the real look before choosing.
+
+const PREVIEW_TEXTS = {
+  "xhs-top":        "冬天必备的两款保湿乳\n全家都在用",
+  "minimal-bottom": "冬天必备的两款保湿乳",
+  "center-bold":    "全家都爱用",
+  "top-tag":        "冬日好物推荐",
+  "editorial-side": "冬天必备保湿乳",
+  "neon-outline":   "好物分享",
+  "xhs-soft":       "冬日护肤好物",
+  "stamp":          "强烈推荐",
+  "cinematic":      "冬天的保湿秘密",
+};
+
+function TemplatePreview({ template }) {
+  const canvasRef = useRef();
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const W = 200, H = 200;
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext("2d");
+
+    // Draw soft lifestyle-style gradient background per template
+    const bg = {
+      "xhs-top":        ["#f5ede8","#e8d5c4","#cbb49a"],
+      "minimal-bottom": ["#2d2d2d","#4a4a4a","#6b6b6b"],
+      "center-bold":    ["#1a1a2e","#2d2d4e","#16213e"],
+      "top-tag":        ["#e8eaf6","#c5cae9","#9fa8da"],
+      "editorial-side": ["#263238","#37474f","#78909c"],
+      "neon-outline":   ["#0d001a","#1a0033","#2d0052"],
+      "xhs-soft":       ["#fce4ec","#f8bbd0","#f48fb1"],
+      "stamp":          ["#fff8e1","#ffecb3","#ffe082"],
+      "cinematic":      ["#111111","#1a1a1a","#2a2a2a"],
+    }[template.id] || ["#333","#555","#777"];
+
+    const g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, bg[0]);
+    g.addColorStop(0.5, bg[1]);
+    g.addColorStop(1, bg[2]);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // Add some soft shape suggestions to simulate a photo
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = bg[2];
+    ctx.beginPath(); ctx.ellipse(W*0.7, H*0.65, W*0.3, H*0.25, 0.3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(W*0.3, H*0.75, W*0.2, H*0.2, -0.2, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Render the template on this fake background
+    const sampleText = PREVIEW_TEXTS[template.id] || "好物分享";
+    document.fonts.ready.then(() => {
+      template.render(ctx, canvas, sampleText, W, H);
+    });
+  }, [template]);
+
+  return <canvas ref={canvasRef} style={{width:"100%",height:"100%",display:"block"}} />;
+}
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
 
@@ -576,9 +662,7 @@ export default function App() {
             <div className="template-grid">
               {TEMPLATES.map(t => (
                 <div key={t.id} className={`template-card${template.id === t.id ? " selected" : ""}`} onClick={() => setTemplate(t)}>
-                  <div style={{width:"100%",height:"100%",background:tplBg(t.id),display:"flex",alignItems:"center",justifyContent:"center"}}>
-                    <span style={{fontFamily:"'DM Serif Display',serif",fontSize:11,color:t.id==="xhs-soft"||t.id==="stamp"?"#111":"#fff",opacity:.85}}>Aa 文</span>
-                  </div>
+                  <TemplatePreview template={t} />
                   <div className="template-card-label">{t.name}</div>
                   {template.id === t.id && (
                     <div style={{position:"absolute",top:6,right:6,width:18,height:18,borderRadius:"50%",background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff"}}>✓</div>
@@ -641,4 +725,3 @@ export default function App() {
     </>
   );
 }
-
