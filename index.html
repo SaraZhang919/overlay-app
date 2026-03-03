@@ -5,9 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Overlay — Batch Image Text Tool</title>
     <meta name="description" content="Add aesthetic text overlays to images in batch. Perfect for Instagram & Xiaohongshu content creators." />
+    <!-- Load all fonts including Noto Sans SC (Chinese) at page start so Canvas API can use them -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&family=Noto+Sans+SC:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="./src/main.jsx"></script>
   </body>
 </html>
+
