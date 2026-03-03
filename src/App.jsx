@@ -185,21 +185,14 @@ const TEMPLATES = [
       ctx.font = font(400, fs, text);
       const lh = fs * 1.75;
       const maxTextW = w * 0.78;
-      // Respect manual \n breaks first, then auto-wrap each segment
+      // Respect manual \n breaks, then auto-wrap each segment
       const segments = text.split("\n");
       const lines = segments.flatMap(seg => seg ? getWrappedLines(ctx, seg, maxTextW) : [""]);
-      const padX = w * 0.06, padY = h * 0.022;
-      const boxW = w * 0.88;
-      const boxH = lines.length * lh + padY * 2;
-      const boxX = (w - boxW) / 2;
-      const boxY = h * 0.055;
-      // Frosted white background box with rounded corners
-      ctx.fillStyle = "rgba(255,255,255,0.78)";
-      roundRect(ctx, boxX, boxY, boxW, boxH, w * 0.025);
-      // Charcoal text centered inside box
+      // Clean dark text directly on image — no background box
       ctx.fillStyle = "#1a1a1a";
       ctx.textAlign = "center"; ctx.textBaseline = "top";
-      lines.forEach((l, i) => ctx.fillText(l, w / 2, boxY + padY + i * lh));
+      const startY = h * 0.07;
+      lines.forEach((l, i) => ctx.fillText(l, w / 2, startY + i * lh));
     },
   },
   {
