@@ -241,20 +241,35 @@ const tplBg = (id) => ({
 }[id] || "#222");
 
 // ─── Template Preview Component ──────────────────────────────────────────────
-// Renders a small canvas showing the template style on a soft gradient background
-// with sample Chinese text so users can see the real look before choosing.
+// All cards share the same warm background and same sample text so users
+// can compare styles fairly. 3:4 ratio to show position differences clearly.
 
-const PREVIEW_TEXTS = {
-  "xhs-top":        "冬天必备的两款保湿乳\n全家都在用",
-  "minimal-bottom": "冬天必备的两款保湿乳",
-  "center-bold":    "全家都爱用",
-  "top-tag":        "冬日好物推荐",
-  "editorial-side": "冬天必备保湿乳",
-  "neon-outline":   "好物分享",
-  "xhs-soft":       "冬日护肤好物",
-  "stamp":          "强烈推荐",
-  "cinematic":      "冬天的保湿秘密",
-};
+const SAMPLE_TEXT = "慢一点也没关系，重要的是你没有停下";
+
+function drawSharedBackground(ctx, W, H) {
+  // Warm beige lifestyle photo feel
+  const g = ctx.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0,   "#ede0d4");
+  g.addColorStop(0.4, "#dfd0c0");
+  g.addColorStop(1,   "#c9b49e");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  // Soft blurred blob — suggests a product / object in background
+  const drawBlob = (x, y, rx, ry, color, alpha) => {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+
+  drawBlob(W * 0.72, H * 0.55, W * 0.28, H * 0.22, "#b8a090", 0.35);
+  drawBlob(W * 0.25, H * 0.68, W * 0.20, H * 0.16, "#c8b8a8", 0.28);
+  drawBlob(W * 0.55, H * 0.30, W * 0.18, H * 0.14, "#e8d8c8", 0.22);
+}
 
 function TemplatePreview({ template }) {
   const canvasRef = useRef();
@@ -262,41 +277,14 @@ function TemplatePreview({ template }) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const W = 200, H = 200;
+    const W = 180, H = 240; // 3:4 ratio
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext("2d");
 
-    // Draw soft lifestyle-style gradient background per template
-    const bg = {
-      "xhs-top":        ["#f5ede8","#e8d5c4","#cbb49a"],
-      "minimal-bottom": ["#2d2d2d","#4a4a4a","#6b6b6b"],
-      "center-bold":    ["#1a1a2e","#2d2d4e","#16213e"],
-      "top-tag":        ["#e8eaf6","#c5cae9","#9fa8da"],
-      "editorial-side": ["#263238","#37474f","#78909c"],
-      "neon-outline":   ["#0d001a","#1a0033","#2d0052"],
-      "xhs-soft":       ["#fce4ec","#f8bbd0","#f48fb1"],
-      "stamp":          ["#fff8e1","#ffecb3","#ffe082"],
-      "cinematic":      ["#111111","#1a1a1a","#2a2a2a"],
-    }[template.id] || ["#333","#555","#777"];
+    drawSharedBackground(ctx, W, H);
 
-    const g = ctx.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, bg[0]);
-    g.addColorStop(0.5, bg[1]);
-    g.addColorStop(1, bg[2]);
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-
-    // Add some soft shape suggestions to simulate a photo
-    ctx.globalAlpha = 0.18;
-    ctx.fillStyle = bg[2];
-    ctx.beginPath(); ctx.ellipse(W*0.7, H*0.65, W*0.3, H*0.25, 0.3, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(W*0.3, H*0.75, W*0.2, H*0.2, -0.2, 0, Math.PI*2); ctx.fill();
-    ctx.globalAlpha = 1;
-
-    // Render the template on this fake background
-    const sampleText = PREVIEW_TEXTS[template.id] || "好物分享";
     document.fonts.ready.then(() => {
-      template.render(ctx, canvas, sampleText, W, H);
+      template.render(ctx, canvas, SAMPLE_TEXT, W, H);
     });
   }, [template]);
 
@@ -643,8 +631,8 @@ export default function App() {
         .connector-arrow { font-size: 14px; color: #333; line-height: 1; }
 
         /* Template grid */
-        .template-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 32px; }
-        .template-card { border: 2px solid var(--border); border-radius: 10px; overflow: hidden; cursor: pointer; transition: all .15s; aspect-ratio: 1; position: relative; }
+        .template-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 32px; }
+        .template-card { border: 2px solid var(--border); border-radius: 10px; overflow: hidden; cursor: pointer; transition: all .15s; aspect-ratio: 3/4; position: relative; }
         .template-card:hover { border-color: var(--muted); }
         .template-card.selected { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(225,29,72,.2); }
         .template-card-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,.75); font-size: 10px; font-family: 'Space Mono', monospace; padding: 6px 8px; text-align: center; color: #fff; }
