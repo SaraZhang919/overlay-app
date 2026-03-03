@@ -188,11 +188,24 @@ const TEMPLATES = [
       // Respect manual \n breaks, then auto-wrap each segment
       const segments = text.split("\n");
       const lines = segments.flatMap(seg => seg ? getWrappedLines(ctx, seg, maxTextW) : [""]);
-      // Clean dark text directly on image — no background box
-      ctx.fillStyle = "#1a1a1a";
-      ctx.textAlign = "center"; ctx.textBaseline = "top";
       const startY = h * 0.07;
-      lines.forEach((l, i) => ctx.fillText(l, w / 2, startY + i * lh));
+      const padX = fs * 0.55;  // horizontal padding on each side of the text
+      const padY = fs * 0.18;  // vertical padding above/below each line
+      const r = fs * 0.22;     // corner radius
+      ctx.textAlign = "center"; ctx.textBaseline = "top";
+      lines.forEach((l, i) => {
+        const lineW = ctx.measureText(l).width;
+        const stripX = w / 2 - lineW / 2 - padX;
+        const stripY = startY + i * lh - padY;
+        const stripW = lineW + padX * 2;
+        const stripH = fs + padY * 2;
+        // Per-line white/cream highlight strip with rounded corners
+        ctx.fillStyle = "rgba(255,253,248,0.82)";
+        roundRect(ctx, stripX, stripY, stripW, stripH, r);
+        // Dark text on top
+        ctx.fillStyle = "#1a1a1a";
+        ctx.fillText(l, w / 2, startY + i * lh);
+      });
     },
   },
   {
