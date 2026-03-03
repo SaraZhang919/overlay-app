@@ -179,24 +179,27 @@ const TEMPLATES = [
   },
   {
     id: "xhs-top", name: "小红书 Top",
-    render: (ctx, img, text, w, h) => {
+    render: (ctx, img, text, w, h, sizeScale = 1) => {
       ctx.drawImage(img, 0, 0, w, h);
-      // Subtle white fade at top for legibility on any image
-      const fadeH = h * 0.48;
-      const g = ctx.createLinearGradient(0, 0, 0, fadeH);
-      g.addColorStop(0, "rgba(255,255,255,0.72)");
-      g.addColorStop(0.6, "rgba(255,255,255,0.18)");
-      g.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, w, fadeH);
-      // Text block: top-centered, generous line height, charcoal
-      const fs = Math.round(w * 0.038);
+      const fs = Math.round(w * 0.038 * sizeScale);
       ctx.font = font(400, fs, text);
+      const lh = fs * 1.75;
+      const maxTextW = w * 0.78;
+      // Respect manual \n breaks first, then auto-wrap each segment
+      const segments = text.split("\n");
+      const lines = segments.flatMap(seg => seg ? getWrappedLines(ctx, seg, maxTextW) : [""]);
+      const padX = w * 0.06, padY = h * 0.022;
+      const boxW = w * 0.88;
+      const boxH = lines.length * lh + padY * 2;
+      const boxX = (w - boxW) / 2;
+      const boxY = h * 0.055;
+      // Frosted white background box with rounded corners
+      ctx.fillStyle = "rgba(255,255,255,0.78)";
+      roundRect(ctx, boxX, boxY, boxW, boxH, w * 0.025);
+      // Charcoal text centered inside box
       ctx.fillStyle = "#1a1a1a";
       ctx.textAlign = "center"; ctx.textBaseline = "top";
-      const lh = fs * 1.75;
-      const lines = getWrappedLines(ctx, text, w * 0.78);
-      const startY = h * 0.07;
-      lines.forEach((l, i) => ctx.fillText(l, w / 2, startY + i * lh));
+      lines.forEach((l, i) => ctx.fillText(l, w / 2, boxY + padY + i * lh));
     },
   },
   {
@@ -294,6 +297,95 @@ function TemplatePreview({ template }) {
   return <canvas ref={canvasRef} style={{width:"100%",height:"100%",display:"block"}} />;
 }
 
+// ─── PreviewCard — inline edit caption + font size on result page ────────────
+
+function PreviewCard({ r, index, template, aspect, onUpdate, onDownload }) {
+  const [editing, setEditing] = useState(false);
+  const [draftCaption, setDraftCaption] = useState(r.caption);
+  const [draftSize, setDraftSize] = useState(r.sizeScale ?? 1);
+  const [rerendering, setRerendering] = useState(false);
+  const liveRef = useRef(r.dataUrl);
+
+  const rerender = async (caption, sizeScale) => {
+    setRerendering(true);
+    await ensureFontsReady();
+    const { w, h } = aspect;
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    const img = await loadImage(r.imgUrl);
+    const scale = Math.max(w / img.width, h / img.height);
+    const sw = img.width * scale, sh = img.height * scale;
+    const tmp = document.createElement("canvas"); tmp.width = w; tmp.height = h;
+    tmp.getContext("2d").drawImage(img, -(sw - w) / 2, -(sh - h) / 2, sw, sh);
+    const cropped = await loadImage(tmp.toDataURL());
+    template.render(ctx, cropped, caption, w, h, sizeScale);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.93);
+    liveRef.current = dataUrl;
+    onUpdate({ ...r, dataUrl, caption, sizeScale });
+    setRerendering(false);
+  };
+
+  const handleSave = () => {
+    rerender(draftCaption, draftSize);
+    setEditing(false);
+  };
+
+  const handleSizeChange = (val) => {
+    setDraftSize(val);
+    rerender(draftCaption, val);
+  };
+
+  return (
+    <div className="preview-card">
+      <div style={{position:"relative"}}>
+        <img src={r.dataUrl} alt={r.name} style={{width:"100%",display:"block"}}/>
+        {rerendering && (
+          <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <div className="spinner"/>
+          </div>
+        )}
+      </div>
+
+      {editing ? (
+        <div style={{padding:"10px 12px",background:"var(--card)",borderTop:"1px solid var(--border)"}}>
+          <div className="label" style={{marginBottom:6}}>Edit caption — press Enter for line break</div>
+          <textarea
+            value={draftCaption}
+            onChange={e => setDraftCaption(e.target.value)}
+            rows={4}
+            style={{width:"100%",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:6,padding:"8px 10px",fontSize:12,color:"var(--text)",fontFamily:"'DM Sans',sans-serif",resize:"vertical",outline:"none",lineHeight:1.6}}
+          />
+          <div className="label" style={{marginTop:10,marginBottom:6}}>
+            Font size — {Math.round(draftSize * 100)}%
+          </div>
+          <input
+            type="range" min="0.5" max="2" step="0.05"
+            value={draftSize}
+            onChange={e => handleSizeChange(parseFloat(e.target.value))}
+            style={{width:"100%",accentColor:"var(--accent)",marginBottom:10}}
+          />
+          <div style={{display:"flex",gap:8}}>
+            <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={handleSave}>✓ Apply</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => { setDraftCaption(r.caption); setDraftSize(r.sizeScale??1); setEditing(false); }}>Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <div className="preview-card-footer">
+          <div style={{minWidth:0}}>
+            <div className="preview-name">{r.name}</div>
+            <div className="caption-preview">{r.caption}</div>
+          </div>
+          <div style={{display:"flex",gap:6,flexShrink:0}}>
+            <button className="btn btn-ghost btn-sm" onClick={() => setEditing(true)} style={{padding:"4px 10px",fontSize:11}}>✎</button>
+            <button className="btn btn-ghost btn-sm" onClick={onDownload} style={{padding:"4px 10px",fontSize:11}}>↓</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main App ─────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -381,8 +473,15 @@ export default function App() {
       const tmp = document.createElement("canvas"); tmp.width = w; tmp.height = h;
       tmp.getContext("2d").drawImage(img, -(sw - w) / 2, -(sh - h) / 2, sw, sh);
       const cropped = await loadImage(tmp.toDataURL());
-      template.render(ctx, cropped, pair.caption, w, h);
-      results.push({ dataUrl: canvas.toDataURL("image/jpeg", 0.93), name: pair.img.name, caption: pair.caption });
+      template.render(ctx, cropped, pair.caption, w, h, pair.sizeScale ?? 1);
+      results.push({
+        dataUrl: canvas.toDataURL("image/jpeg", 0.93),
+        name: pair.img.name,
+        caption: pair.caption,
+        imgUrl: pair.img.url,
+        sizeScale: pair.sizeScale ?? 1,
+        pairIdx: pairs.indexOf(pair),
+      });
     }
     setRendered(results); setRendering(false); setStep("preview");
   }, [pairs, template, aspect]);
@@ -511,6 +610,8 @@ export default function App() {
         .export-info strong { display: block; font-size: 18px; font-family: 'DM Serif Display', serif; }
         .export-info span { color: var(--muted); font-size: 12px; }
         .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+        .preview-card textarea:focus { border-color: var(--accent); outline: none; }
+        input[type=range] { height: 4px; border-radius: 2px; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
         /* Hint box */
@@ -706,16 +807,19 @@ export default function App() {
 
             <div className="preview-grid">
               {rendered.map((r, i) => (
-                <div key={i} className="preview-card">
-                  <img src={r.dataUrl} alt={r.name}/>
-                  <div className="preview-card-footer">
-                    <div style={{minWidth:0}}>
-                      <div className="preview-name">{r.name}</div>
-                      <div className="caption-preview">{r.caption}</div>
-                    </div>
-                    <button className="btn btn-ghost btn-sm" onClick={() => downloadOne(r)} style={{padding:"4px 10px",fontSize:11,flexShrink:0}}>↓</button>
-                  </div>
-                </div>
+                <PreviewCard
+                  key={i}
+                  r={r}
+                  index={i}
+                  template={template}
+                  aspect={aspect}
+                  onUpdate={(updated) => {
+                    const next = [...rendered];
+                    next[i] = updated;
+                    setRendered(next);
+                  }}
+                  onDownload={() => downloadOne(r)}
+                />
               ))}
             </div>
           </>}
