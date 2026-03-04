@@ -314,10 +314,36 @@ export default function App() {
     setImages(files.map(f => ({ file: f, url: URL.createObjectURL(f), name: f.name })));
   };
 
-  const handleCSV = (e) => {
+  const handleCaptionFile = async (e) => {
     const file = e.target.files[0]; if (!file) return;
+    const ext = file.name.split(".").pop().toLowerCase();
+    setCsvError("");
+
+    // ── XLSX handler ──
+    if (ext === "xlsx" || ext === "xls") {
+      try {
+        const XLSX = await import("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: "array" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+        if (!rows.length) { setCsvError("Spreadsheet is empty."); return; }
+        // Use first column; detect header by checking if first cell is a known keyword
+        const first = String(rows[0][0] || "").toLowerCase();
+        const hasHeader = ["caption","text","quote","标题","文字","内容","文案"].some(k => first.includes(k));
+        const parsed = (hasHeader ? rows.slice(1) : rows)
+          .map(r => String(r[0] || "").trim())
+          .filter(Boolean);
+        if (!parsed.length) { setCsvError("No captions found in first column."); return; }
+        setCaptions(parsed);
+      } catch (err) {
+        setCsvError("Failed to read spreadsheet: " + err.message);
+      }
+      return;
+    }
+
+    // ── TXT / CSV handler (with encoding detection) ──
     const reader = new FileReader();
-    // Read raw bytes to handle both UTF-8 and GBK/GB18030 (common from Chinese Excel exports)
     reader.onload = (ev) => {
       const bytes = new Uint8Array(ev.target.result);
       // Try UTF-8 first; if replacement chars detected, retry with GB18030
@@ -327,10 +353,12 @@ export default function App() {
       }
       text = text.replace(/^\uFEFF/, ""); // strip BOM
       const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
-      if (!lines.length) { setCsvError("CSV is empty."); return; }
+      if (!lines.length) { setCsvError("File is empty."); return; }
       const first = lines[0].toLowerCase();
       const hasHeader = ["caption","text","quote","标题","文字","内容","文案"].some(k => first.includes(k));
-      const parsed = (hasHeader ? lines.slice(1) : lines).map(l => l.replace(/^["'\uFEFF]|["']$/g, "").trim());
+      const parsed = (hasHeader ? lines.slice(1) : lines)
+        .map(l => l.replace(/^["'\uFEFF]|["']$/g, "").trim())
+        .filter(Boolean);
       setCaptions(parsed); setCsvError("");
     };
     reader.readAsArrayBuffer(file);
@@ -565,11 +593,11 @@ export default function App() {
 
               <div className="drop-zone" onClick={() => csvInputRef.current.click()}>
                 <div className="drop-icon">📄</div>
-                <div className="drop-label">Import CSV</div>
-                <div className="drop-hint">One caption per row. Supports Chinese text.</div>
+                <div className="drop-label">Import Captions</div>
+                <div className="drop-hint">CSV · TXT · XLSX · XLS — Chinese supported</div>
                 {captions.length > 0 && <div className="badge">{captions.length} caption{captions.length > 1 ? "s" : ""} loaded</div>}
                 {csvError && <div className="error">{csvError}</div>}
-                <input ref={csvInputRef} type="file" accept=".csv,.txt" style={{display:"none"}} onChange={handleCSV}/>
+                <input ref={csvInputRef} type="file" accept=".csv,.txt,.xlsx,.xls" style={{display:"none"}} onChange={handleCaptionFile}/>
               </div>
             </div>
 
