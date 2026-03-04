@@ -509,22 +509,37 @@ export default function App() {
         .img-count { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; justify-content: center; }
         .img-pill { background: var(--card); border: 1px solid var(--border); font-size: 10px; font-family: 'Space Mono', monospace; padding: 2px 8px; border-radius: 100px; color: var(--muted); }
 
-        /* ── CONFIRM STEP: Unified table ── */
-        .confirm-table { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 28px; }
-        .confirm-table-header { display: grid; grid-template-columns: 32px 64px 1fr 28px 2fr 28px; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
-        .confirm-table-header span { font-size: 11px; font-family: 'Space Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
-        .confirm-row { display: grid; grid-template-columns: 32px 64px 1fr 28px 2fr 28px; align-items: start; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); transition: background .12s; }
+        /* ── CONFIRM STEP: Unified table with split zones ── */
+        .confirm-table { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 28px; }
+        /* Header */
+        .confirm-header { display: flex; border-bottom: 1px solid var(--border); background: #111; }
+        .confirm-header-image { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: #141414; border-right: 2px solid #2a2a2a; width: 42%; flex-shrink: 0; }
+        .confirm-header-caption { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: #180d10; flex: 1; }
+        .confirm-header-image span, .confirm-header-caption span { font-size: 10px; font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+        .confirm-header-caption span:first-child { color: var(--accent); }
+        .h-badge { font-size: 9px; padding: 2px 7px; border-radius: 100px; font-family: 'Space Mono', monospace; }
+        .h-badge-lock { background: #222; border: 1px solid #333; color: var(--muted); }
+        .h-badge-drag { background: #2a0e15; border: 1px solid #3f1020; color: var(--accent); }
+        /* Row */
+        .confirm-row { display: flex; border-bottom: 1px solid var(--border); align-items: stretch; }
         .confirm-row:last-child { border-bottom: none; }
-        .confirm-row.drag-active { background: #1f0a10; }
         .confirm-row.is-dragging { opacity: .35; }
-        .img-num { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); text-align: right; padding-top: 10px; }
-        .img-thumb { width: 52px; height: 52px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); display: block; }
-        .img-filename { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Space Mono', monospace; padding-top: 10px; }
-        .drag-grip { cursor: grab; color: #444; font-size: 18px; line-height: 1; flex-shrink: 0; padding: 4px; border-radius: 4px; transition: color .1s; user-select: none; text-align: center; padding-top: 8px; }
-        .drag-grip:hover { color: var(--muted); background: var(--border); }
-        .caption-input { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px; color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; transition: border .15s; resize: none; overflow: hidden; line-height: 1.6; min-height: 38px; box-sizing: border-box; }
-        .caption-input:focus { border-color: var(--accent); }
-        .locked-icon { font-size: 11px; opacity: .35; text-align: center; padding-top: 10px; }
+        /* Image zone — never reacts to drag */
+        .row-image-zone { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface); border-right: 2px solid #2a2a2a; width: 42%; flex-shrink: 0; transition: background .12s; }
+        .confirm-row:hover .row-image-zone { background: #1a1a1a; }
+        /* Caption zone — rose tint, reacts to drag */
+        .row-caption-zone { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: #130a0d; flex: 1; transition: background .12s; }
+        .confirm-row:hover .row-caption-zone { background: #1a0d11; }
+        .confirm-row.drag-active .row-caption-zone { background: #1f0a10; border-top: 2px solid var(--accent); }
+        /* Image zone elements */
+        .img-num { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); width: 20px; text-align: right; flex-shrink: 0; }
+        .img-thumb { width: 46px; height: 46px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); flex-shrink: 0; display: block; }
+        .img-filename { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Space Mono', monospace; }
+        /* Caption zone elements */
+        .drag-grip { cursor: grab; color: #555; font-size: 16px; flex-shrink: 0; padding: 4px 3px; border-radius: 4px; transition: color .1s, background .1s; user-select: none; margin-top: 2px; }
+        .drag-grip:hover { color: var(--accent); background: #2a0e15; }
+        .caption-input { flex: 1; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 6px 8px; font-size: 13px; color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; resize: none; overflow: hidden; line-height: 1.6; min-height: 36px; transition: border .15s, background .15s; width: 100%; box-sizing: border-box; }
+        .caption-input:focus { border-color: var(--accent); background: #1f0a10; }
 
         /* Connector arrows between panels */
         .confirm-connector { display: flex; flex-direction: column; justify-content: space-around; align-items: center; padding: 52px 0 12px; }
@@ -636,51 +651,61 @@ export default function App() {
             </div>
 
             <div className="confirm-table">
-              {/* Header */}
-              <div className="confirm-table-header">
-                <span>#</span>
-                <span>Image</span>
-                <span>Filename</span>
-                <span/>
-                <span>Caption — drag ⠿ to reorder</span>
-                <span>🔒</span>
+              {/* Header — two clearly distinct zones */}
+              <div className="confirm-header">
+                <div className="confirm-header-image">
+                  <span>Images</span>
+                  <span className="h-badge h-badge-lock">🔒 locked</span>
+                </div>
+                <div className="confirm-header-caption">
+                  <span>Captions</span>
+                  <span className="h-badge h-badge-drag">⠿ drag to reorder</span>
+                </div>
               </div>
 
-              {/* Rows — each row has image + caption together so they always align */}
+              {/* Rows — image zone left, caption zone right, always aligned */}
               {pairs.map((pair, i) => (
                 <div
                   key={`row-${i}`}
                   className={`confirm-row${dragIdx === i ? " is-dragging" : ""}${dragOver === i && dragOver !== dragIdx ? " drag-active" : ""}`}
-                  onDragOver={e => { e.preventDefault(); onDragEnter(i); }}
-                  onDrop={onDragEnd}
                 >
-                  <span className="img-num">{i + 1}</span>
-                  <img className="img-thumb" src={pair.img.url} alt={pair.img.name}/>
-                  <span className="img-filename" title={pair.img.name}>{pair.img.name}</span>
-                  <span
-                    className="drag-grip"
-                    draggable
-                    onDragStart={() => onDragStart(i)}
-                    onDragEnd={onDragEnd}
-                    title="Drag to reorder caption"
-                  >⠿</span>
-                  <textarea
-                    className="caption-input"
-                    value={pair.caption}
-                    onChange={e => {
-                      editCaption(i, e.target.value);
-                      e.target.style.height = "auto";
-                      e.target.style.height = e.target.scrollHeight + "px";
-                    }}
-                    onMouseDown={e => e.stopPropagation()}
-                    onFocus={e => {
-                      e.target.style.height = "auto";
-                      e.target.style.height = e.target.scrollHeight + "px";
-                    }}
-                    placeholder="Edit caption…"
-                    rows={1}
-                  />
-                  <span className="locked-icon">🔒</span>
+                  {/* Image zone — locked, neutral */}
+                  <div className="row-image-zone">
+                    <span className="img-num">{i + 1}</span>
+                    <img className="img-thumb" src={pair.img.url} alt={pair.img.name}/>
+                    <span className="img-filename" title={pair.img.name}>{pair.img.name}</span>
+                  </div>
+
+                  {/* Caption zone — rose tint, draggable */}
+                  <div
+                    className="row-caption-zone"
+                    onDragOver={e => { e.preventDefault(); onDragEnter(i); }}
+                    onDrop={onDragEnd}
+                  >
+                    <span
+                      className="drag-grip"
+                      draggable
+                      onDragStart={() => onDragStart(i)}
+                      onDragEnd={onDragEnd}
+                      title="Drag to reorder"
+                    >⠿</span>
+                    <textarea
+                      className="caption-input"
+                      value={pair.caption}
+                      onChange={e => {
+                        editCaption(i, e.target.value);
+                        e.target.style.height = "auto";
+                        e.target.style.height = e.target.scrollHeight + "px";
+                      }}
+                      onMouseDown={e => e.stopPropagation()}
+                      onFocus={e => {
+                        e.target.style.height = "auto";
+                        e.target.style.height = e.target.scrollHeight + "px";
+                      }}
+                      placeholder="Edit caption…"
+                      rows={1}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
