@@ -422,14 +422,32 @@ export default function App() {
   }, [pairs, template, aspect]);
 
   const downloadAll = async () => {
-    const zip = new JSZip();
-    rendered.forEach((r, i) => zip.file(`overlay_${String(i + 1).padStart(3, "0")}_${r.name}`, r.dataUrl.split(",")[1], { base64: true }));
-    const blob = await zip.generateAsync({ type: "blob" });
-    Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: "overlays.zip" }).click();
+    try {
+      const zip = new JSZip();
+      rendered.forEach((r, i) => {
+        const base64Data = r.dataUrl.split(",")[1];
+        zip.file(`overlay_${String(i + 1).padStart(3, "0")}_${r.name.replace(/\.[^.]+$/, "")}.jpg`, base64Data, { base64: true });
+      });
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "overlays.zip";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+    } catch (err) {
+      alert("Download failed: " + err.message);
+    }
   };
 
   const downloadOne = (r) => {
-    Object.assign(document.createElement("a"), { href: r.dataUrl, download: `overlay_${r.name}` }).click();
+    const a = document.createElement("a");
+    a.href = r.dataUrl;
+    a.download = `overlay_${r.name.replace(/\.[^.]+$/, "")}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => document.body.removeChild(a), 500);
   };
 
   const STEPS = ["upload", "confirm", "configure", "preview"];
@@ -495,18 +513,18 @@ export default function App() {
         .confirm-table { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 28px; }
         .confirm-table-header { display: grid; grid-template-columns: 32px 64px 1fr 28px 2fr 28px; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
         .confirm-table-header span { font-size: 11px; font-family: 'Space Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
-        .confirm-row { display: grid; grid-template-columns: 32px 64px 1fr 28px 2fr 28px; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border); transition: background .12s; }
+        .confirm-row { display: grid; grid-template-columns: 32px 64px 1fr 28px 2fr 28px; align-items: start; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); transition: background .12s; }
         .confirm-row:last-child { border-bottom: none; }
         .confirm-row.drag-active { background: #1f0a10; }
         .confirm-row.is-dragging { opacity: .35; }
-        .img-num { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); text-align: right; }
+        .img-num { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); text-align: right; padding-top: 10px; }
         .img-thumb { width: 52px; height: 52px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); display: block; }
-        .img-filename { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Space Mono', monospace; }
-        .drag-grip { cursor: grab; color: #444; font-size: 18px; line-height: 1; flex-shrink: 0; padding: 4px; border-radius: 4px; transition: color .1s; user-select: none; text-align: center; }
+        .img-filename { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Space Mono', monospace; padding-top: 10px; }
+        .drag-grip { cursor: grab; color: #444; font-size: 18px; line-height: 1; flex-shrink: 0; padding: 4px; border-radius: 4px; transition: color .1s; user-select: none; text-align: center; padding-top: 8px; }
         .drag-grip:hover { color: var(--muted); background: var(--border); }
         .caption-input { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px; color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; transition: border .15s; resize: none; overflow: hidden; line-height: 1.6; min-height: 38px; box-sizing: border-box; }
         .caption-input:focus { border-color: var(--accent); }
-        .locked-icon { font-size: 11px; opacity: .35; text-align: center; }
+        .locked-icon { font-size: 11px; opacity: .35; text-align: center; padding-top: 10px; }
 
         /* Connector arrows between panels */
         .confirm-connector { display: flex; flex-direction: column; justify-content: space-around; align-items: center; padding: 52px 0 12px; }
