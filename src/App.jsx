@@ -1,4 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import JSZip from "jszip";
+import * as XLSX from "xlsx";
 
 // ─── CJK Font Support ────────────────────────────────────────────────────────
 // Noto Sans SC is loaded via <link> in index.html at page start.
@@ -322,7 +324,6 @@ export default function App() {
     // ── XLSX handler ──
     if (ext === "xlsx" || ext === "xls") {
       try {
-        const XLSX = await import("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
         const buf = await file.arrayBuffer();
         const wb = XLSX.read(buf, { type: "array" });
         const ws = wb.Sheets[wb.SheetNames[0]];
@@ -421,8 +422,6 @@ export default function App() {
   }, [pairs, template, aspect]);
 
   const downloadAll = async () => {
-    const JSZipMod = await import("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
-    const JSZip = JSZipMod.default || JSZipMod;
     const zip = new JSZip();
     rendered.forEach((r, i) => zip.file(`overlay_${String(i + 1).padStart(3, "0")}_${r.name}`, r.dataUrl.split(",")[1], { base64: true }));
     const blob = await zip.generateAsync({ type: "blob" });
@@ -492,32 +491,22 @@ export default function App() {
         .img-count { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; justify-content: center; }
         .img-pill { background: var(--card); border: 1px solid var(--border); font-size: 10px; font-family: 'Space Mono', monospace; padding: 2px 8px; border-radius: 100px; color: var(--muted); }
 
-        /* ── CONFIRM STEP: Split-panel layout ── */
-        .confirm-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px; }
-
-        /* Left panel — images (locked) */
-        .panel-images { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-        .panel-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
-        .panel-header-title { font-size: 11px; font-family: 'Space Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
-        .panel-header-badge { font-size: 10px; background: var(--card); border: 1px solid var(--border); color: var(--muted); padding: 2px 8px; border-radius: 100px; font-family: 'Space Mono', monospace; }
-        .image-row { display: flex; align-items: flex-start; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border); min-height: 58px; }
-        .image-row:last-child { border-bottom: none; }
-        .img-num { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); width: 20px; text-align: right; flex-shrink: 0; }
-        .img-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; flex-shrink: 0; border: 1px solid var(--border); }
-        .img-filename { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Space Mono', monospace; font-size: 10px; }
-        .locked-icon { font-size: 11px; margin-left: auto; flex-shrink: 0; opacity: .4; }
-
-        /* Right panel — captions (draggable) */
-        .panel-captions { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-        .caption-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: default; transition: background .12s, border-color .12s; }
-        .caption-row:last-child { border-bottom: none; }
-        .caption-row.drag-active { background: #1f0a10; border-color: var(--accent); }
-        .caption-row.drag-over-target { border-top: 2px solid var(--accent); }
-        .caption-row.is-dragging { opacity: .35; }
-        .drag-grip { cursor: grab; color: #444; font-size: 18px; line-height: 1; flex-shrink: 0; padding: 4px 4px 0; border-radius: 4px; transition: color .1s; user-select: none; margin-top: 6px; }
+        /* ── CONFIRM STEP: Unified table ── */
+        .confirm-table { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 28px; }
+        .confirm-table-header { display: grid; grid-template-columns: 32px 64px 1fr 28px 2fr 28px; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+        .confirm-table-header span { font-size: 11px; font-family: 'Space Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+        .confirm-row { display: grid; grid-template-columns: 32px 64px 1fr 28px 2fr 28px; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border); transition: background .12s; }
+        .confirm-row:last-child { border-bottom: none; }
+        .confirm-row.drag-active { background: #1f0a10; }
+        .confirm-row.is-dragging { opacity: .35; }
+        .img-num { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); text-align: right; }
+        .img-thumb { width: 52px; height: 52px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); display: block; }
+        .img-filename { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Space Mono', monospace; }
+        .drag-grip { cursor: grab; color: #444; font-size: 18px; line-height: 1; flex-shrink: 0; padding: 4px; border-radius: 4px; transition: color .1s; user-select: none; text-align: center; }
         .drag-grip:hover { color: var(--muted); background: var(--border); }
-        .caption-input { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px; color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; transition: border .15s; min-width: 0; resize: none; overflow: hidden; line-height: 1.6; min-height: 38px; }
+        .caption-input { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px; color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; transition: border .15s; resize: none; overflow: hidden; line-height: 1.6; min-height: 38px; box-sizing: border-box; }
         .caption-input:focus { border-color: var(--accent); }
+        .locked-icon { font-size: 11px; opacity: .35; text-align: center; }
 
         /* Connector arrows between panels */
         .confirm-connector { display: flex; flex-direction: column; justify-content: space-around; align-items: center; padding: 52px 0 12px; }
@@ -624,66 +613,58 @@ export default function App() {
             <div className="hint-box">
               <span style={{fontSize:18,lineHeight:1,flexShrink:0}}>↕</span>
               <span>
-                Images stay in their original order (locked). Only the <strong style={{color:"#f5f5f5"}}>caption list</strong> on the right is draggable — grab the <strong style={{color:"#f5f5f5"}}>⠿</strong> handle to move a caption up or down until it lines up with the right image.
+                Images are locked in order. Grab <strong style={{color:"#f5f5f5"}}>⠿</strong> to drag a caption row up or down to match the correct image. Click any caption to edit it directly.
               </span>
             </div>
 
-            <div className="confirm-panels">
-              {/* Left: Images (locked) */}
-              <div className="panel-images">
-                <div className="panel-header">
-                  <span className="panel-header-title">Images</span>
-                  <span className="panel-header-badge">locked</span>
-                </div>
-                {pairs.map((pair, i) => (
-                  <div key={pair.id} className="image-row">
-                    <span className="img-num">{i + 1}</span>
-                    <img className="img-thumb" src={pair.img.url} alt={pair.img.name}/>
-                    <span className="img-filename" title={pair.img.name}>{pair.img.name}</span>
-                    <span className="locked-icon">🔒</span>
-                  </div>
-                ))}
+            <div className="confirm-table">
+              {/* Header */}
+              <div className="confirm-table-header">
+                <span>#</span>
+                <span>Image</span>
+                <span>Filename</span>
+                <span/>
+                <span>Caption — drag ⠿ to reorder</span>
+                <span>🔒</span>
               </div>
 
-              {/* Right: Captions (draggable independently) */}
-              <div className="panel-captions">
-                <div className="panel-header">
-                  <span className="panel-header-title">Captions</span>
-                  <span className="panel-header-badge">drag to reorder</span>
+              {/* Rows — each row has image + caption together so they always align */}
+              {pairs.map((pair, i) => (
+                <div
+                  key={`row-${i}`}
+                  className={`confirm-row${dragIdx === i ? " is-dragging" : ""}${dragOver === i && dragOver !== dragIdx ? " drag-active" : ""}`}
+                  onDragOver={e => { e.preventDefault(); onDragEnter(i); }}
+                  onDrop={onDragEnd}
+                >
+                  <span className="img-num">{i + 1}</span>
+                  <img className="img-thumb" src={pair.img.url} alt={pair.img.name}/>
+                  <span className="img-filename" title={pair.img.name}>{pair.img.name}</span>
+                  <span
+                    className="drag-grip"
+                    draggable
+                    onDragStart={() => onDragStart(i)}
+                    onDragEnd={onDragEnd}
+                    title="Drag to reorder caption"
+                  >⠿</span>
+                  <textarea
+                    className="caption-input"
+                    value={pair.caption}
+                    onChange={e => {
+                      editCaption(i, e.target.value);
+                      e.target.style.height = "auto";
+                      e.target.style.height = e.target.scrollHeight + "px";
+                    }}
+                    onMouseDown={e => e.stopPropagation()}
+                    onFocus={e => {
+                      e.target.style.height = "auto";
+                      e.target.style.height = e.target.scrollHeight + "px";
+                    }}
+                    placeholder="Edit caption…"
+                    rows={1}
+                  />
+                  <span className="locked-icon">🔒</span>
                 </div>
-                {pairs.map((pair, i) => (
-                  <div
-                    key={`cap-${i}`}
-                    className={`caption-row${dragIdx === i ? " is-dragging" : ""}${dragOver === i && dragOver !== dragIdx ? " drag-active" : ""}`}
-                    onDragOver={e => { e.preventDefault(); onDragEnter(i); }}
-                    onDrop={onDragEnd}
-                  >
-                    <span
-                      className="drag-grip"
-                      draggable
-                      onDragStart={() => onDragStart(i)}
-                      onDragEnd={onDragEnd}
-                      title="Drag to reorder"
-                    >⠿</span>
-                    <textarea
-                      className="caption-input"
-                      value={pair.caption}
-                      onChange={e => {
-                        editCaption(i, e.target.value);
-                        e.target.style.height = "auto";
-                        e.target.style.height = e.target.scrollHeight + "px";
-                      }}
-                      onMouseDown={e => e.stopPropagation()}
-                      onFocus={e => {
-                        e.target.style.height = "auto";
-                        e.target.style.height = e.target.scrollHeight + "px";
-                      }}
-                      placeholder="Edit caption here… Enter for line break"
-                      rows={1}
-                    />
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
 
             <div style={{display:"flex",alignItems:"center",gap:16}}>
