@@ -514,12 +514,12 @@ export default function App() {
         /* Header */
         .confirm-header { display: flex; border-bottom: 1px solid var(--border); background: #111; }
         .confirm-header-image { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: #141414; border-right: 2px solid #2a2a2a; width: 42%; flex-shrink: 0; }
-        .confirm-header-caption { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: #180d10; flex: 1; }
+        .confirm-header-caption { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: #1a1a1a; flex: 1; }
         .confirm-header-image span, .confirm-header-caption span { font-size: 10px; font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-        .confirm-header-caption span:first-child { color: var(--accent); }
+        .confirm-header-caption span:first-child { color: #aaa; }
         .h-badge { font-size: 9px; padding: 2px 7px; border-radius: 100px; font-family: 'Space Mono', monospace; }
         .h-badge-lock { background: #222; border: 1px solid #333; color: var(--muted); }
-        .h-badge-drag { background: #2a0e15; border: 1px solid #3f1020; color: var(--accent); }
+        .h-badge-drag { background: #222; border: 1px solid #444; color: #aaa; }
         /* Row */
         .confirm-row { display: flex; border-bottom: 1px solid var(--border); align-items: stretch; }
         .confirm-row:last-child { border-bottom: none; }
@@ -528,18 +528,18 @@ export default function App() {
         .row-image-zone { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface); border-right: 2px solid #2a2a2a; width: 42%; flex-shrink: 0; transition: background .12s; }
         .confirm-row:hover .row-image-zone { background: #1a1a1a; }
         /* Caption zone — rose tint, reacts to drag */
-        .row-caption-zone { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: #130a0d; flex: 1; transition: background .12s; }
-        .confirm-row:hover .row-caption-zone { background: #1a0d11; }
-        .confirm-row.drag-active .row-caption-zone { background: #1f0a10; border-top: 2px solid var(--accent); }
+        .row-caption-zone { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: #1a1a1a; flex: 1; transition: background .12s; }
+        .confirm-row:hover .row-caption-zone { background: #1f1f1f; }
+        .confirm-row.drag-active .row-caption-zone { background: #252525; border-top: 2px solid #555; }
         /* Image zone elements */
         .img-num { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); width: 20px; text-align: right; flex-shrink: 0; }
         .img-thumb { width: 46px; height: 46px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); flex-shrink: 0; display: block; }
         .img-filename { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Space Mono', monospace; }
         /* Caption zone elements */
         .drag-grip { cursor: grab; color: #555; font-size: 16px; flex-shrink: 0; padding: 4px 3px; border-radius: 4px; transition: color .1s, background .1s; user-select: none; margin-top: 2px; }
-        .drag-grip:hover { color: var(--accent); background: #2a0e15; }
+        .drag-grip:hover { color: #f5f5f5; background: #333; }
         .caption-input { flex: 1; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 6px 8px; font-size: 13px; color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; resize: none; overflow: hidden; line-height: 1.6; min-height: 36px; transition: border .15s, background .15s; width: 100%; box-sizing: border-box; }
-        .caption-input:focus { border-color: var(--accent); background: #1f0a10; }
+        .caption-input:focus { border-color: #555; background: #222; }
 
         /* Connector arrows between panels */
         .confirm-connector { display: flex; flex-direction: column; justify-content: space-around; align-items: center; padding: 52px 0 12px; }
