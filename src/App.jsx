@@ -120,13 +120,14 @@ const TEMPLATES = [
       const fs = Math.round(w * 0.038 * sizeScale);
       const lh = fs * 1.3;
       const maxTextW = w * 0.88;
-      const segments = text.split("\n");
-      const lines = segments.flatMap(seg => seg ? getWrappedLines(ctx, seg, maxTextW) : [""]);
-      const startY = h * 0.065;
+      // Font MUST be set before getWrappedLines so measureText is accurate
       ctx.font = font(700, fs, text);
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       ctx.lineJoin = "round";
+      const segments = text.split("\n");
+      const lines = segments.flatMap(seg => seg ? getWrappedLines(ctx, seg, maxTextW) : [""]);
+      const startY = h * 0.065;
       lines.forEach((l, i) => {
         const y = startY + i * lh;
         ctx.lineWidth = Math.round(fs * 0.22); // slightly thicker for clarity
@@ -162,8 +163,12 @@ function TemplatePreview({ template }) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const W = 180, H = 240;
+    // Use high resolution canvas for crisp text — 2× the display size
+    const DPR = window.devicePixelRatio || 2;
+    const W = 360, H = 480;
     canvas.width = W; canvas.height = H;
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
     const ctx = canvas.getContext("2d");
 
     // Each template uses its own background image
@@ -484,7 +489,7 @@ export default function App() {
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
           --bg: #0a0a0a; --surface: #141414; --border: #262626;
-          --accent: #c4973a; --accent2: #d4a84a;
+          --accent: #e11d48; --accent2: #f43f5e;
           --text: #f5f5f5; --muted: #737373; --card: #1a1a1a; --ok: #22c55e;
         }
         body { background: var(--bg); }
@@ -524,7 +529,7 @@ export default function App() {
         /* Upload */
         .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
         .drop-zone { border: 1.5px dashed var(--border); border-radius: 12px; padding: 36px 24px; text-align: center; cursor: pointer; transition: all .2s; background: var(--surface); }
-        .drop-zone:hover { border-color: var(--accent); background: #1a1205; }
+        .drop-zone:hover { border-color: var(--accent); background: #1f0a10; }
         .drop-icon { font-size: 28px; margin-bottom: 10px; }
         .drop-label { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
         .drop-hint { font-size: 12px; color: var(--muted); }
@@ -539,12 +544,12 @@ export default function App() {
         /* Header */
         .confirm-header { display: flex; border-bottom: 1px solid var(--border); background: #111; }
         .confirm-header-image { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: #141414; border-right: 2px solid #2a2a2a; width: 42%; flex-shrink: 0; }
-        .confirm-header-caption { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: #14110a; flex: 1; }
+        .confirm-header-caption { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: #180d10; flex: 1; }
         .confirm-header-image span, .confirm-header-caption span { font-size: 10px; font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-        .confirm-header-caption span:first-child { color: #c4973a; }
+        .confirm-header-caption span:first-child { color: var(--accent); }
         .h-badge { font-size: 9px; padding: 2px 7px; border-radius: 100px; font-family: 'Space Mono', monospace; }
         .h-badge-lock { background: #222; border: 1px solid #333; color: var(--muted); }
-        .h-badge-drag { background: #1f1a0d; border: 1px solid #3a2e0f; color: #c4973a; }
+        .h-badge-drag { background: #2a0e15; border: 1px solid #3f1020; color: var(--accent); }
         /* Row */
         .confirm-row { display: flex; border-bottom: 1px solid var(--border); align-items: stretch; }
         .confirm-row:last-child { border-bottom: none; }
@@ -553,18 +558,18 @@ export default function App() {
         .row-image-zone { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface); border-right: 2px solid #2a2a2a; width: 42%; flex-shrink: 0; transition: background .12s; }
         .confirm-row:hover .row-image-zone { background: #1a1a1a; }
         /* Caption zone — rose tint, reacts to drag */
-        .row-caption-zone { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: #14110a; flex: 1; transition: background .12s; }
-        .confirm-row:hover .row-caption-zone { background: #1a1508; }
-        .confirm-row.drag-active .row-caption-zone { background: #211a08; border-top: 2px solid #c4973a; }
+        .row-caption-zone { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: #130a0d; flex: 1; transition: background .12s; }
+        .confirm-row:hover .row-caption-zone { background: #1a0d11; }
+        .confirm-row.drag-active .row-caption-zone { background: #1f0a10; border-top: 2px solid var(--accent); }
         /* Image zone elements */
         .img-num { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); width: 20px; text-align: right; flex-shrink: 0; }
         .img-thumb { width: 46px; height: 46px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); flex-shrink: 0; display: block; }
         .img-filename { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Space Mono', monospace; }
         /* Caption zone elements */
         .drag-grip { cursor: grab; color: #555; font-size: 16px; flex-shrink: 0; padding: 4px 3px; border-radius: 4px; transition: color .1s, background .1s; user-select: none; margin-top: 2px; }
-        .drag-grip:hover { color: #c4973a; background: #1f1a0d; }
+        .drag-grip:hover { color: var(--accent); background: #2a0e15; }
         .caption-input { flex: 1; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 6px 8px; font-size: 13px; color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; resize: none; overflow: hidden; line-height: 1.6; min-height: 36px; transition: border .15s, background .15s; width: 100%; box-sizing: border-box; }
-        .caption-input:focus { border-color: #c4973a; background: #1a1508; }
+        .caption-input:focus { border-color: var(--accent); background: #1f0a10; }
 
         /* Connector arrows between panels */
         .confirm-connector { display: flex; flex-direction: column; justify-content: space-around; align-items: center; padding: 52px 0 12px; }
@@ -574,11 +579,11 @@ export default function App() {
         .template-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 32px; }
         .template-card { border: 2px solid var(--border); border-radius: 10px; overflow: hidden; cursor: pointer; transition: all .15s; aspect-ratio: 3/4; position: relative; }
         .template-card:hover { border-color: var(--muted); }
-        .template-card.selected { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(196,151,58,.2); }
+        .template-card.selected { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(225,29,72,.2); }
         .template-card-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,.75); font-size: 10px; font-family: 'Space Mono', monospace; padding: 6px 8px; text-align: center; color: #fff; }
         .ratio-row { display: flex; gap: 10px; margin-bottom: 32px; flex-wrap: wrap; }
         .ratio-btn { padding: 8px 18px; border-radius: 6px; border: 1.5px solid var(--border); font-size: 12px; font-family: 'Space Mono', monospace; cursor: pointer; background: var(--surface); color: var(--text); transition: all .15s; }
-        .ratio-btn.selected { border-color: var(--accent); color: var(--accent); background: #1a1205; }
+        .ratio-btn.selected { border-color: var(--accent); color: var(--accent); background: #1f0a10; }
 
         /* Preview */
         .preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 36px; }
