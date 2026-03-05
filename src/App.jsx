@@ -121,7 +121,7 @@ const TEMPLATES = [
       const lh = fs * 1.3;
       const maxTextW = w * 0.88;
       // Font MUST be set before getWrappedLines so measureText is accurate
-      ctx.font = font(700, fs, text);
+      ctx.font = `italic 400 ${fs}px "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       ctx.lineJoin = "round";
@@ -155,7 +155,7 @@ const tplBg = (id) => ""; // unused — preview uses real watercolor image
 // All cards share the same warm background and same sample text so users
 // can compare styles fairly. 3:4 ratio to show position differences clearly.
 
-const SAMPLE_TEXT = "慢一点也没关系，重要的是你没有停下";
+const SAMPLE_TEXT = "小萌橡皮也太可爱了，六角形的设计很好抓握 而且擦的也很干净。擦出来的是一条线状的屑，有趣又很实用";
 
 function TemplatePreview({ template }) {
   const canvasRef = useRef();
@@ -556,10 +556,10 @@ export default function App() {
         .confirm-row.is-dragging { opacity: .35; }
         /* Image zone — never reacts to drag */
         .row-image-zone { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface); border-right: 2px solid #2a2a2a; width: 42%; flex-shrink: 0; transition: background .12s; }
-        .confirm-row:hover .row-image-zone { background: #1a1a1a; }
+        .row-caption-zone:hover { background: #1a0d11; }
         /* Caption zone — rose tint, reacts to drag */
         .row-caption-zone { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: #130a0d; flex: 1; transition: background .12s; }
-        .confirm-row:hover .row-caption-zone { background: #1a0d11; }
+        
         .confirm-row.drag-active .row-caption-zone { background: #1f0a10; border-top: 2px solid var(--accent); }
         /* Image zone elements */
         .img-num { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); width: 20px; text-align: right; flex-shrink: 0; }
