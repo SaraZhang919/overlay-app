@@ -117,11 +117,11 @@ const TEMPLATES = [
     id: "huangyou", name: "黄油字体-顶部居中",
     render: (ctx, img, text, w, h, sizeScale = 1) => {
       ctx.drawImage(img, 0, 0, w, h);
-      const fs = Math.round(w * 0.038 * sizeScale);
-      const lh = fs * 1.3;
+      const fs = Math.round(w * 0.032 * sizeScale);
+      const lh = fs * 1.30;
       const maxTextW = w * 0.88;
       // Font MUST be set before getWrappedLines so measureText is accurate
-      ctx.font = `italic 400 ${fs}px "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif`;
+      ctx.font = `500 ${fs}px "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       ctx.lineJoin = "round";
@@ -130,8 +130,8 @@ const TEMPLATES = [
       const startY = h * 0.065;
       lines.forEach((l, i) => {
         const y = startY + i * lh;
-        ctx.lineWidth = Math.round(fs * 0.22); // slightly thicker for clarity
-        ctx.strokeStyle = "#000000";
+        ctx.lineWidth = Math.round(fs * 0.15);
+        ctx.strokeStyle = "rgba(0,0,0,0.65)";
         ctx.strokeText(l, w / 2, y);
         ctx.fillStyle = "#ffffff";
         ctx.fillText(l, w / 2, y);
