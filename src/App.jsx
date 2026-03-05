@@ -119,7 +119,7 @@ const TEMPLATES = [
       ctx.drawImage(img, 0, 0, w, h);
       const fs = Math.round(w * 0.036 * sizeScale);
       const lh = fs * 1.30;
-      const maxTextW = w * 0.88;
+      const maxTextW = w * 0.72;
       // Font MUST be set before getWrappedLines so measureText is accurate
       ctx.font = `italic 450 ${fs}px "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif`;
       ctx.textAlign = "center";
