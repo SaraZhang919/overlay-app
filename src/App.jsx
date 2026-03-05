@@ -117,11 +117,11 @@ const TEMPLATES = [
     id: "huangyou", name: "黄油字体-顶部居中",
     render: (ctx, img, text, w, h, sizeScale = 1) => {
       ctx.drawImage(img, 0, 0, w, h);
-      const fs = Math.round(w * 0.032 * sizeScale);
+      const fs = Math.round(w * 0.038 * sizeScale);
       const lh = fs * 1.30;
       const maxTextW = w * 0.88;
       // Font MUST be set before getWrappedLines so measureText is accurate
-      ctx.font = `500 ${fs}px "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif`;
+      ctx.font = `italic 350 ${fs}px "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       ctx.lineJoin = "round";
