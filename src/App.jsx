@@ -318,6 +318,12 @@ export default function App() {
   const [template, setTemplate] = useState(TEMPLATES[0]);
   const [aspect, setAspect] = useState(ASPECT_RATIOS[0]);
   const [rendered, setRendered] = useState([]);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackStars, setFeedbackStars] = useState(0);
+  const [feedbackHover, setFeedbackHover] = useState(0);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [feedbackDone, setFeedbackDone] = useState(false);
   const [rendering, setRendering] = useState(false);
   const [csvError, setCsvError] = useState("");
   const [dragIdx, setDragIdx] = useState(null);
@@ -466,9 +472,33 @@ export default function App() {
       document.body.appendChild(a);
       a.click();
       setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+      // Show feedback modal after download
+      setTimeout(() => setShowFeedback(true), 1200);
     } catch (err) {
       alert("Download failed: " + err.message);
     }
+  };
+
+  const submitFeedback = async () => {
+    if (!feedbackStars) return;
+    setFeedbackSubmitting(true);
+    try {
+      await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stars: feedbackStars,
+          comment: feedbackComment,
+          template: template.name,
+          imageCount: rendered.length,
+        }),
+      });
+      setFeedbackDone(true);
+      setTimeout(() => { setShowFeedback(false); setFeedbackDone(false); setFeedbackStars(0); setFeedbackComment(""); }, 2000);
+    } catch (err) {
+      console.error("Feedback error:", err);
+    }
+    setFeedbackSubmitting(false);
   };
 
   const downloadOne = (r) => {
@@ -584,6 +614,24 @@ export default function App() {
         .ratio-row { display: flex; gap: 10px; margin-bottom: 32px; flex-wrap: wrap; }
         .ratio-btn { padding: 8px 18px; border-radius: 6px; border: 1.5px solid var(--border); font-size: 12px; font-family: 'Space Mono', monospace; cursor: pointer; background: var(--surface); color: var(--text); transition: all .15s; }
         .ratio-btn.selected { border-color: var(--accent); color: var(--accent); background: #1f0a10; }
+
+        /* Feedback */
+        .fb-fab { position: fixed; bottom: 24px; right: 24px; z-index: 999; background: var(--accent); color: #fff; border: none; border-radius: 100px; padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 16px rgba(225,29,72,.35); display: flex; align-items: center; gap: 6px; font-family: "DM Sans", sans-serif; transition: transform .15s; }
+        .fb-fab:hover { transform: translateY(-2px); }
+        .fb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 24px; backdrop-filter: blur(4px); }
+        .fb-modal { background: #141414; border: 1px solid #262626; border-radius: 16px; padding: 32px; width: 100%; max-width: 420px; }
+        .fb-title { font-family: "DM Serif Display", serif; font-size: 22px; margin-bottom: 6px; }
+        .fb-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+        .fb-stars { display: flex; gap: 8px; margin-bottom: 20px; }
+        .fb-star { font-size: 32px; cursor: pointer; transition: transform .1s; line-height: 1; }
+        .fb-star:hover { transform: scale(1.2); }
+        .fb-textarea { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 13px; color: var(--text); font-family: "DM Sans", sans-serif; outline: none; resize: none; line-height: 1.6; transition: border .15s; margin-bottom: 20px; box-sizing: border-box; }
+        .fb-textarea:focus { border-color: var(--accent); }
+        .fb-actions { display: flex; gap: 10px; align-items: center; }
+        .fb-skip { font-size: 13px; color: var(--muted); cursor: pointer; text-decoration: underline; }
+        .fb-skip:hover { color: var(--text); }
+        .fb-done { text-align: center; padding: 20px 0; font-size: 28px; }
+        .fb-done p { font-size: 15px; color: var(--muted); margin-top: 8px; }
 
         /* Preview */
         .preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 36px; }
@@ -846,6 +894,66 @@ export default function App() {
 
         </div>
       </div>
+    </>
+  );
+
+  return (
+    <>
+      {mainUI}
+
+      {/* Floating feedback button */}
+      <button className="fb-fab" onClick={() => setShowFeedback(true)}>
+        💬 Feedback
+      </button>
+
+      {/* Feedback modal */}
+      {showFeedback && (
+        <div className="fb-overlay" onClick={e => { if (e.target === e.currentTarget) setShowFeedback(false); }}>
+          <div className="fb-modal">
+            {feedbackDone ? (
+              <div className="fb-done">
+                🎉
+                <p>Thanks for your feedback!</p>
+              </div>
+            ) : (
+              <>
+                <div className="fb-title">How was your experience?</div>
+                <div className="fb-sub">Your feedback helps us improve the app.</div>
+                <div className="fb-stars">
+                  {[1,2,3,4,5].map(s => (
+                    <span
+                      key={s}
+                      className="fb-star"
+                      onMouseEnter={() => setFeedbackHover(s)}
+                      onMouseLeave={() => setFeedbackHover(0)}
+                      onClick={() => setFeedbackStars(s)}
+                    >
+                      {s <= (feedbackHover || feedbackStars) ? "⭐" : "☆"}
+                    </span>
+                  ))}
+                </div>
+                <textarea
+                  className="fb-textarea"
+                  rows={3}
+                  placeholder="Any thoughts or suggestions? (optional)"
+                  value={feedbackComment}
+                  onChange={e => setFeedbackComment(e.target.value)}
+                />
+                <div className="fb-actions">
+                  <button
+                    className="btn btn-primary"
+                    onClick={submitFeedback}
+                    disabled={!feedbackStars || feedbackSubmitting}
+                  >
+                    {feedbackSubmitting ? "Sending…" : "Submit"}
+                  </button>
+                  <span className="fb-skip" onClick={() => setShowFeedback(false)}>Skip</span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }
